@@ -5,7 +5,7 @@
 import { clamp } from './util.js';
 
 export const state = {
-  pitch: 0,       // -1 = push (nose down) .. +1 = pull (nose up), analog
+  pitch: 0,       // -1 = push forward .. +1 = pull back, analog
   fire: false,
   bomb: false,    // edge-triggered: consume with takeBomb()
 };
@@ -93,7 +93,7 @@ function onMove(e) {
   else if (dy < -TRAVEL) { drag.originY = e.clientY + TRAVEL; dy = -TRAVEL; }
 
   const mag = Math.max(0, Math.abs(dy) - DEADZONE) / (TRAVEL - DEADZONE);
-  drag.value = clamp(mag, 0, 1) * (dy < 0 ? 1 : -1);   // up = pull = climb
+  drag.value = clamp(mag, 0, 1) * (dy < 0 ? 1 : -1);   // up = pull back
   moveKnob(dy);
   refreshPitch();
 }

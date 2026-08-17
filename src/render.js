@@ -375,7 +375,10 @@ export class Renderer {
     ctx.save();
     ctx.translate(this.camX + dx, p.y);
     ctx.rotate(p.angle);
-    if (Math.cos(p.angle) < 0) ctx.scale(1, -1);   // keep the pilot upright
+    // Fixed roll, so the aircraft genuinely flies inverted when it is inverted.
+    // Mirroring on heading instead would right the plane as it crossed vertical
+    // and invert the apparent control sense with it.
+    ctx.scale(1, p.roll);
 
     // Propeller disc.
     const blur = 0.5 + 0.5 * Math.abs(Math.sin(p.propPhase));

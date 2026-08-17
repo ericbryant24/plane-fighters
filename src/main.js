@@ -237,7 +237,9 @@ class Game {
   }
 
   spawnBomb(plane) {
-    const drop = plane.angle + Math.PI / 2 * plane.facing;
+    // Off the belly, which is set by the airframe's roll rather than its
+    // heading — so an inverted plane really does drop upward, then gravity wins.
+    const drop = plane.angle + Math.PI / 2 * plane.roll;
     this.bombs.push(new Bomb(
       plane.x + Math.cos(drop) * 12,
       plane.y + Math.sin(drop) * 12,

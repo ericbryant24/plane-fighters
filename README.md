@@ -33,10 +33,14 @@ momentum, and turning is charged as induced drag.
   easing off tightens them — right up to the point the wings stop biting.
 - Below ~70 units of airspeed you **stall**: the wings quit, the nose falls
   through, and the flight path stops following where you point. Dive to recover.
-- Holding a full pull flies a continuous loop. The rotation direction is latched
-  when the stick leaves neutral, so it doesn't reverse on you as you pass
-  through vertical — and it re-latches if you swing the drag the other way,
-  so reversing mid-manoeuvre works without lifting your finger.
+- **Pulling back is always the same rotation, upright or inverted.** Holding it
+  flies a continuous loop; reversing the stick reverses the arc immediately.
+- The aircraft is drawn at a fixed roll, so it genuinely flies inverted when it
+  is inverted. Half a loop reverses your direction of travel and leaves you
+  upside down — which is fine, keep flying, or keep pulling to come round. The
+  earlier version mirrored the sprite upright as it crossed vertical, which
+  inverted the apparent control sense at the same moment and was thoroughly
+  disorienting.
 - Hard turns bleed speed, so a long turning fight leaves you slow and low —
   which is exactly when the AA guns get interesting.
 - Air thins near the ceiling and the engine starves. The ground is fatal.

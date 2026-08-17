@@ -18,6 +18,13 @@ export class Plane {
     this.vx = Math.cos(this.angle) * s;
     this.vy = Math.sin(this.angle) * s;
 
+    // Which way up the airframe is drawn. Set once from the initial heading so
+    // a plane spawned flying left looks upright, and never changed after that:
+    // an aircraft that loops onto a reciprocal heading stays inverted, because
+    // silently righting itself mid-flight is disorienting and would mean the
+    // controls no longer match what you see.
+    this.roll = opts.roll ?? (Math.cos(this.angle) < 0 ? -1 : 1);
+
     this.side = opts.side ?? 'enemy';           // 'player' | 'enemy'
     this.kind = opts.kind ?? (this.side === 'player' ? 'player' : 'enemy');
     this.livery = LIVERY[this.kind] ?? LIVERY.enemy;
@@ -38,11 +45,9 @@ export class Plane {
     this.smokeAcc = 0;
     this.stalling = false;
     this.ai = null;
-    // `pitch` is the human-facing stick (+1 = pull back / climb). `turn` is a
-    // direct screen-space rotation channel (+1 = clockwise) used by the AI.
+    // `pitch` is the stick: +1 = pull back, -1 = push forward. `turn` is a
+    // direct rotation-rate channel (+1 = clockwise on screen) used by the AI.
     this.controls = { pitch: 0, turn: null, fire: false, bomb: false };
-    this.turnLatch = 0;
-    this.latchSign = 0;
     this.age = 0;
   }
 
@@ -60,31 +65,19 @@ export class Plane {
   }
 
   /**
-   * Resolve the stick into a screen rotation direction, scaled by how far the
-   * stick is deflected.
+   * Resolve the stick into a rotation rate, scaled by stick deflection.
    *
-   * The direction is latched rather than derived every frame: `facing` flips
-   * sign at vertical, so re-deriving pins the aircraft there and a loop can
-   * never come over the top. Holding one way therefore loops continuously.
-   *
-   * It re-latches when the stick crosses back through neutral *or* reverses
-   * sign, so an analog drag swung from pull to push reads as a new command
-   * relative to the aircraft's current attitude — without lifting a finger.
+   * Pulling back is one fixed rotation direction, always — never re-derived
+   * from which way the nose happens to point. Because the airframe is drawn at
+   * a fixed roll, that single direction is simultaneously consistent on screen
+   * and consistent relative to the aircraft: pulling back rotates the nose
+   * toward the canopy whether you are upright or inverted. Holding it flies a
+   * continuous loop; reversing the stick reverses the rotation immediately.
    */
   turnInput() {
     const c = this.controls;
     if (c.turn !== null && c.turn !== undefined) return c.turn;
-    if (!c.pitch) {
-      this.turnLatch = 0;
-      this.latchSign = 0;
-      return 0;
-    }
-    const s = Math.sign(c.pitch);
-    if (!this.turnLatch || s !== this.latchSign) {
-      this.turnLatch = -s * this.facing;
-      this.latchSign = s;
-    }
-    return this.turnLatch * Math.min(1, Math.abs(c.pitch));
+    return -clamp(c.pitch, -1, 1);
   }
 
   update(dt, game) {
