@@ -53,11 +53,15 @@
   </div>
 
   <!-- ── Touch controls ─────────────────────────────── -->
+  <!-- Pitch is a drag anywhere on the playfield; only the two weapon
+       buttons claim their own taps. -->
+  <div id="stick" aria-hidden="true">
+    <i class="ring"></i>
+    <i class="track"></i>
+    <i id="stick-knob"></i>
+  </div>
+
   <div id="controls" class="hide">
-    <div class="pad left">
-      <button class="ctl pitch" id="ctl-up" aria-label="Pull up">▲</button>
-      <button class="ctl pitch" id="ctl-down" aria-label="Push down">▼</button>
-    </div>
     <div class="pad right">
       <button class="ctl bomb" id="ctl-bomb" aria-label="Drop bomb">BOMB</button>
       <button class="ctl fire" id="ctl-fire" aria-label="Fire guns">FIRE</button>
@@ -71,7 +75,8 @@
       <p class="tag">Side-view biplane dogfights over no-man's-land.</p>
       <button id="btn-start" class="primary">TAKE OFF</button>
       <div class="howto">
-        <div class="row"><b>▲ ▼</b><span>Pull up / push down — hold to loop</span></div>
+        <div class="row"><b>DRAG</b><span>Anywhere — up to pull back, down to push. How far you drag is how hard she turns.</span></div>
+        <div class="row"><b>HOLD</b><span>Keep pulling and she goes right around the loop</span></div>
         <div class="row"><b>FIRE</b><span>Twin Vickers guns</span></div>
         <div class="row"><b>BOMB</b><span>Drop on ground targets</span></div>
         <div class="row"><b>NOTE</b><span>Speed sets your turn radius — slow down to turn tight, but stall and the wings quit.</span></div>

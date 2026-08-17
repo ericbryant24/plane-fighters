@@ -191,13 +191,78 @@ html, body {
   bottom: 0;
   padding: 0 calc(var(--safe-r) + 14px) calc(var(--safe-b) + 16px) calc(var(--safe-l) + 14px);
   display: flex;
-  justify-content: space-between;
+  justify-content: flex-end;
   align-items: flex-end;
   gap: 12px;
+  pointer-events: none;      /* only the buttons themselves take taps */
 }
 
 .pad { display: flex; flex-direction: column; gap: 10px; }
 .pad.right { align-items: flex-end; }
+.ctl { pointer-events: auto; }
+
+/* ── Drag stick ───────────────────────────────────────
+   Appears under the finger, so pitch can be dragged anywhere on the
+   playfield rather than from a fixed pad. */
+
+#stick {
+  position: absolute;
+  z-index: 3;
+  width: 0;
+  height: 0;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.12s;
+}
+
+#stick.on { opacity: 0.88; }
+
+#stick > i {
+  position: absolute;
+  left: 0;
+  top: 0;
+  display: block;
+  border-radius: 999px;
+}
+
+#stick .track {
+  width: 26px;
+  height: 196px;
+  transform: translate(-50%, -50%);
+  border: 1px solid rgba(190, 215, 235, 0.16);
+  background: linear-gradient(180deg,
+    rgba(150, 200, 240, 0.14),
+    rgba(150, 200, 240, 0.03) 45%,
+    rgba(150, 200, 240, 0.03) 55%,
+    rgba(240, 192, 90, 0.14));
+}
+
+#stick .ring {
+  width: 15px;
+  height: 15px;
+  transform: translate(-50%, -50%);
+  border: 1px solid rgba(220, 235, 250, 0.5);
+}
+
+#stick-knob {
+  width: 40px;
+  height: 40px;
+  transform: translate(-50%, -50%);
+  border: 1.5px solid rgba(225, 240, 255, 0.75);
+  background: rgba(120, 175, 225, 0.3);
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.4);
+  transition: background 0.1s, border-color 0.1s;
+}
+
+#stick-knob.pull {
+  border-color: rgba(180, 225, 255, 0.95);
+  background: rgba(120, 195, 245, 0.45);
+}
+
+#stick-knob.push {
+  border-color: rgba(245, 210, 130, 0.95);
+  background: rgba(230, 180, 80, 0.4);
+}
 
 .ctl {
   border: 1px solid var(--edge);
@@ -210,13 +275,6 @@ html, body {
   letter-spacing: 0.08em;
   touch-action: none;
   transition: transform 0.06s, background 0.06s;
-}
-
-.ctl.pitch {
-  width: 74px;
-  height: 60px;
-  border-radius: 14px;
-  font-size: 22px;
 }
 
 .ctl.fire {
@@ -237,10 +295,7 @@ html, body {
   background: rgba(74, 56, 14, 0.5);
 }
 
-.ctl.down {
-  transform: scale(0.94);
-  background: rgba(120, 180, 230, 0.35);
-}
+.ctl.down { transform: scale(0.94); }
 
 .ctl.fire.down { background: rgba(226, 84, 60, 0.6); }
 .ctl.bomb.down { background: rgba(240, 192, 90, 0.55); }
@@ -395,6 +450,5 @@ button.primary:active { transform: scale(0.985); }
 @media (max-height: 620px) {
   .howto { display: none; }
   h1, h1 span { font-size: 24px; }
-  .ctl.pitch { height: 52px; }
   .ctl.fire { width: 76px; height: 76px; }
 }

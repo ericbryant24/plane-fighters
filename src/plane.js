@@ -42,6 +42,7 @@ export class Plane {
     // direct screen-space rotation channel (+1 = clockwise) used by the AI.
     this.controls = { pitch: 0, turn: null, fire: false, bomb: false };
     this.turnLatch = 0;
+    this.latchSign = 0;
     this.age = 0;
   }
 
@@ -59,17 +60,31 @@ export class Plane {
   }
 
   /**
-   * Resolve the stick into a screen rotation direction. The direction is
-   * latched on press so a held stick keeps rotating the same way all the way
-   * around a loop; re-deriving it every frame pins the plane at vertical,
-   * because that is exactly where `facing` flips sign.
+   * Resolve the stick into a screen rotation direction, scaled by how far the
+   * stick is deflected.
+   *
+   * The direction is latched rather than derived every frame: `facing` flips
+   * sign at vertical, so re-deriving pins the aircraft there and a loop can
+   * never come over the top. Holding one way therefore loops continuously.
+   *
+   * It re-latches when the stick crosses back through neutral *or* reverses
+   * sign, so an analog drag swung from pull to push reads as a new command
+   * relative to the aircraft's current attitude — without lifting a finger.
    */
   turnInput() {
     const c = this.controls;
     if (c.turn !== null && c.turn !== undefined) return c.turn;
-    if (!c.pitch) { this.turnLatch = 0; return 0; }
-    if (!this.turnLatch) this.turnLatch = -Math.sign(c.pitch) * this.facing;
-    return this.turnLatch * Math.abs(c.pitch);
+    if (!c.pitch) {
+      this.turnLatch = 0;
+      this.latchSign = 0;
+      return 0;
+    }
+    const s = Math.sign(c.pitch);
+    if (!this.turnLatch || s !== this.latchSign) {
+      this.turnLatch = -s * this.facing;
+      this.latchSign = s;
+    }
+    return this.turnLatch * Math.min(1, Math.abs(c.pitch));
   }
 
   update(dt, game) {

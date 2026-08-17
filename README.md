@@ -33,8 +33,10 @@ momentum, and turning is charged as induced drag.
   easing off tightens them — right up to the point the wings stop biting.
 - Below ~70 units of airspeed you **stall**: the wings quit, the nose falls
   through, and the flight path stops following where you point. Dive to recover.
-- Holding ▲ flies a continuous loop. The rotation direction is latched when you
-  press, so the stick doesn't reverse on you as you pass through vertical.
+- Holding a full pull flies a continuous loop. The rotation direction is latched
+  when the stick leaves neutral, so it doesn't reverse on you as you pass
+  through vertical — and it re-latches if you swing the drag the other way,
+  so reversing mid-manoeuvre works without lifting your finger.
 - Hard turns bleed speed, so a long turning fight leaves you slow and low —
   which is exactly when the AA guns get interesting.
 - Air thins near the ceiling and the engine starves. The ground is fatal.
@@ -43,11 +45,19 @@ momentum, and turning is charged as induced drag.
 
 | Action | Touch | Keyboard |
 | --- | --- | --- |
-| Pull up / push down | ▲ / ▼ (bottom left) | `↑` `↓` or `W` `S` |
+| Pull up / push down | **drag anywhere** — up pulls back, down pushes | `↑` `↓` or `W` `S` |
 | Fire guns | FIRE | `Space` |
 | Drop bomb | BOMB | `B` |
 | Pause | II (top right) | `P` / `Esc` |
 | Start / restart | on-screen buttons | `Enter` |
+
+Pitch is an analog drag rather than buttons: press anywhere on the playfield
+and a stick appears under your finger. Deflection is proportional — about 84px
+of travel is full stick — so you can hold a gentle turn instead of only
+hard-over. Drag past full deflection and the anchor follows your finger, so
+easing back off responds immediately rather than needing the whole travel back.
+The two weapon buttons keep their own touches, so you can drag and fire at the
+same time.
 
 ## Running locally
 
