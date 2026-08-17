@@ -64,15 +64,16 @@ To try the touch controls, use your browser's device emulation in portrait
 
 ## Deploying to GitHub Pages
 
-The repo ships `.github/workflows/deploy.yml`, which publishes the repository
-root on every push to `main`. It needs Pages set to build from Actions once:
+Pages serves the repository root directly from `main`, configured under
+**Settings → Pages → Source: Deploy from a branch** (`main`, `/ (root)`).
+Because there is no build step, the checked-in files *are* the site — every
+push to `main` republishes. `.nojekyll` is present so the `src/` directory is
+served as-is rather than being run through Jekyll.
 
-**Settings → Pages → Build and deployment → Source: GitHub Actions**
-
-Alternatively, skip the workflow entirely and choose **Deploy from a branch**
-(`main`, `/root`) — because there is no build step, the checked-in files are
-already the site. `.nojekyll` is present so the `src/` directory is served
-as-is either way.
+There is deliberately no Actions workflow. The `actions/deploy-pages` route
+was tried first and its job was rejected before a runner was ever assigned
+(no steps, no logs), so it was dropped in favour of branch deployment, which
+needs no runner, no artifact upload and no `github-pages` environment.
 
 ## Layout
 
