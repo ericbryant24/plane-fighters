@@ -1,0 +1,400 @@
+/* Plane Fighters — portrait-first layout.
+   Canvas paints the world; everything else here is DOM chrome on top. */
+
+:root {
+  --ink: #eaf2f8;
+  --dim: #8fa6b8;
+  --panel: rgba(12, 20, 28, 0.88);
+  --edge: rgba(180, 210, 235, 0.22);
+  --gold: #f0c05a;
+  --red: #e2543c;
+  --green: #6fd08c;
+  --safe-t: env(safe-area-inset-top, 0px);
+  --safe-b: env(safe-area-inset-bottom, 0px);
+  --safe-l: env(safe-area-inset-left, 0px);
+  --safe-r: env(safe-area-inset-right, 0px);
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+html, body {
+  height: 100%;
+  overflow: hidden;
+  background: #0b1118;
+  color: var(--ink);
+  font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+  -webkit-font-smoothing: antialiased;
+  -webkit-tap-highlight-color: transparent;
+  -webkit-text-size-adjust: 100%;
+  overscroll-behavior: none;
+  touch-action: none;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+#app {
+  position: fixed;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+}
+
+#game {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  display: block;
+  touch-action: none;
+}
+
+.hide { display: none !important; }
+
+/* ── HUD ─────────────────────────────────────────────── */
+
+/* Scrim so HUD text stays legible against bright sky or cloud. */
+#hud::before {
+  content: '';
+  position: absolute;
+  inset: 0 0 auto 0;
+  height: 170px;
+  background: linear-gradient(180deg, rgba(6, 12, 20, 0.62), rgba(6, 12, 20, 0.28) 55%, rgba(6, 12, 20, 0));
+  pointer-events: none;
+}
+
+#hud {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  padding: calc(var(--safe-t) + 8px) calc(var(--safe-r) + 10px) 0 calc(var(--safe-l) + 10px);
+  font-size: 12px;
+  letter-spacing: 0.06em;
+}
+
+.hud-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.7);
+}
+
+.hud-block { display: flex; flex-direction: column; gap: 1px; }
+.hud-block.center { align-items: center; }
+.hud-block.right { align-items: flex-end; }
+
+.lbl {
+  color: #b6c8d6;
+  font-size: 9px;
+  letter-spacing: 0.18em;
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.9);
+}
+
+.val {
+  font-size: 19px;
+  font-weight: 700;
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+}
+
+.hud-gauges {
+  margin-top: 10px;
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.85);
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  width: min(62%, 240px);
+}
+
+.gauge { display: flex; align-items: center; gap: 7px; }
+
+.bar {
+  flex: 1;
+  height: 9px;
+  border: 1px solid var(--edge);
+  background: rgba(0, 0, 0, 0.35);
+  border-radius: 2px;
+  overflow: hidden;
+}
+
+.bar > i {
+  display: block;
+  height: 100%;
+  width: 100%;
+  background: linear-gradient(90deg, #4fb37a, #8ee0a4);
+  transition: width 0.18s linear, background 0.3s;
+}
+
+.bar > i.warn { background: linear-gradient(90deg, #d9a13c, #f0c05a); }
+.bar > i.crit { background: linear-gradient(90deg, #b93a26, #e2543c); }
+
+.pips { display: flex; gap: 3px; }
+
+.pips > i {
+  width: 7px;
+  height: 11px;
+  border-radius: 4px 4px 2px 2px;
+  background: var(--gold);
+  box-shadow: 0 0 5px rgba(240, 192, 90, 0.45);
+}
+
+.pips > i.spent { background: rgba(255, 255, 255, 0.13); box-shadow: none; }
+
+.hud-msg {
+  position: absolute;
+  top: 26%;
+  left: 0;
+  right: 0;
+  text-align: center;
+  font-size: 17px;
+  font-weight: 700;
+  letter-spacing: 0.2em;
+  color: var(--gold);
+  text-shadow: 0 2px 10px rgba(0, 0, 0, 0.8);
+  opacity: 0;
+  transition: opacity 0.35s;
+}
+
+.hud-msg.show { opacity: 1; }
+
+.hud-btns {
+  position: absolute;
+  top: calc(var(--safe-t) + 52px);
+  right: calc(var(--safe-r) + 10px);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  pointer-events: auto;
+}
+
+.chip {
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  border: 1px solid var(--edge);
+  background: rgba(10, 18, 26, 0.6);
+  color: var(--ink);
+  font: inherit;
+  font-size: 13px;
+  line-height: 1;
+  touch-action: none;
+}
+
+.chip.off { color: #6b7c8c; }
+
+/* ── Touch controls ──────────────────────────────────── */
+
+#controls {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  padding: 0 calc(var(--safe-r) + 14px) calc(var(--safe-b) + 16px) calc(var(--safe-l) + 14px);
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  gap: 12px;
+}
+
+.pad { display: flex; flex-direction: column; gap: 10px; }
+.pad.right { align-items: flex-end; }
+
+.ctl {
+  border: 1px solid var(--edge);
+  background: rgba(12, 22, 32, 0.55);
+  backdrop-filter: blur(3px);
+  -webkit-backdrop-filter: blur(3px);
+  color: var(--ink);
+  font: inherit;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  touch-action: none;
+  transition: transform 0.06s, background 0.06s;
+}
+
+.ctl.pitch {
+  width: 74px;
+  height: 60px;
+  border-radius: 14px;
+  font-size: 22px;
+}
+
+.ctl.fire {
+  width: 86px;
+  height: 86px;
+  border-radius: 50%;
+  font-size: 15px;
+  border-color: rgba(226, 84, 60, 0.55);
+  background: rgba(90, 26, 18, 0.5);
+}
+
+.ctl.bomb {
+  width: 74px;
+  height: 52px;
+  border-radius: 14px;
+  font-size: 12px;
+  border-color: rgba(240, 192, 90, 0.5);
+  background: rgba(74, 56, 14, 0.5);
+}
+
+.ctl.down {
+  transform: scale(0.94);
+  background: rgba(120, 180, 230, 0.35);
+}
+
+.ctl.fire.down { background: rgba(226, 84, 60, 0.6); }
+.ctl.bomb.down { background: rgba(240, 192, 90, 0.55); }
+.ctl.empty { opacity: 0.35; }
+
+/* ── Overlays ────────────────────────────────────────── */
+
+.screen {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: calc(var(--safe-t) + 16px) 18px calc(var(--safe-b) + 16px);
+  background: radial-gradient(ellipse at 50% 35%, rgba(12, 26, 42, 0.32), rgba(4, 8, 12, 0.82));
+  backdrop-filter: blur(2px);
+  -webkit-backdrop-filter: blur(2px);
+  z-index: 5;
+}
+
+.panel {
+  width: 100%;
+  max-width: 360px;
+  padding: 22px 20px;
+  border: 1px solid var(--edge);
+  border-radius: 16px;
+  background: var(--panel);
+  box-shadow: 0 18px 50px rgba(0, 0, 0, 0.6);
+  text-align: center;
+}
+
+.panel.small { padding: 26px 20px; }
+
+h1 {
+  font-size: 30px;
+  line-height: 0.98;
+  letter-spacing: 0.02em;
+  font-weight: 800;
+}
+
+h1 span {
+  display: block;
+  color: var(--gold);
+  font-size: 30px;
+}
+
+h2 {
+  font-size: 22px;
+  letter-spacing: 0.14em;
+  color: var(--gold);
+}
+
+.tag {
+  margin: 10px 0 20px;
+  color: var(--dim);
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+button.primary,
+button.ghost {
+  display: block;
+  width: 100%;
+  padding: 14px;
+  margin-top: 14px;
+  border-radius: 12px;
+  font: inherit;
+  font-size: 15px;
+  font-weight: 700;
+  letter-spacing: 0.16em;
+  touch-action: manipulation;
+  cursor: pointer;
+}
+
+button.primary {
+  border: 1px solid rgba(240, 192, 90, 0.7);
+  background: linear-gradient(180deg, rgba(240, 192, 90, 0.9), rgba(200, 150, 50, 0.9));
+  color: #1a1204;
+}
+
+button.ghost {
+  border: 1px solid var(--edge);
+  background: transparent;
+  color: var(--dim);
+}
+
+button.primary:active { transform: scale(0.985); }
+
+.howto {
+  margin-top: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+  text-align: left;
+  font-size: 11px;
+  color: var(--dim);
+}
+
+.howto .row { display: flex; gap: 10px; align-items: baseline; }
+
+.howto b {
+  min-width: 46px;
+  color: var(--ink);
+  font-size: 11px;
+  letter-spacing: 0.08em;
+}
+
+.keys {
+  margin-top: 16px;
+  font-size: 9.5px;
+  line-height: 1.6;
+  color: #6b7c8c;
+}
+
+.keys b { color: var(--dim); }
+
+.best {
+  margin-top: 12px;
+  font-size: 10px;
+  letter-spacing: 0.2em;
+  color: var(--dim);
+}
+
+.best span { color: var(--gold); font-weight: 700; }
+
+.stats {
+  margin: 16px 0 4px;
+  display: flex;
+  justify-content: center;
+  gap: 16px;
+  font-size: 10px;
+  letter-spacing: 0.12em;
+  color: var(--dim);
+}
+
+.stats span { display: flex; flex-direction: column; gap: 4px; }
+.stats b { font-size: 20px; color: var(--ink); }
+
+.newbest {
+  margin-top: 10px;
+  font-size: 11px;
+  letter-spacing: 0.2em;
+  color: var(--gold);
+}
+
+/* Landscape / larger screens: keep the playfield portrait-ish and centred. */
+@media (min-aspect-ratio: 1/1) {
+  #controls { padding-bottom: calc(var(--safe-b) + 22px); }
+  .ctl.fire { width: 84px; height: 84px; }
+}
+
+@media (max-height: 620px) {
+  .howto { display: none; }
+  h1, h1 span { font-size: 24px; }
+  .ctl.pitch { height: 52px; }
+  .ctl.fire { width: 76px; height: 76px; }
+}

@@ -1,0 +1,96 @@
+# Plane Fighters
+
+A 2D side-view biplane dogfighting game that runs in the browser. Built for
+portrait-orientation phones, playable with a keyboard on desktop. No build
+step, no dependencies — plain HTML, CSS and ES modules on a `<canvas>`.
+
+**Play:** https://ericbryant24.github.io/plane-fighters/
+
+## The game
+
+You fly a scout biplane over a wrapping strip of front line. CPU pilots come at
+you in waves; each wave adds more planes, sharper aim and the occasional red ace.
+Guns handle other aircraft, bombs handle what's on the ground.
+
+- **Guns** — twin fixed forward guns, so you have to point the whole aeroplane.
+- **Bombs** — 8 per wave, dropped from the belly. They fall with your momentum,
+  so a shallow dive throws them forward. Blast radius will also clip a plane —
+  including yours, if you release too low.
+- **Ground targets** — AA emplacements shoot flak at you (kill them first),
+  plus depots, hangars and observation balloons for score.
+- **Waves** — clear a wave for a bonus, a bomb reload and some hull repair.
+
+### Flying it
+
+The flight model is the point of the game, not a detail. It integrates speed and
+flight-path angle directly rather than summing xy forces, because lift does no
+work: the wings bend your flight path toward the nose instead of destroying
+momentum, and turning is charged as induced drag.
+
+- **Climbing costs speed, diving buys it.** At cruise the wings carry the weight
+  and you hold altitude; slower than that and the aircraft mushes downward.
+- **Speed sets your turn radius, not your turn rate.** Fast means wide arcs;
+  easing off tightens them — right up to the point the wings stop biting.
+- Below ~70 units of airspeed you **stall**: the wings quit, the nose falls
+  through, and the flight path stops following where you point. Dive to recover.
+- Holding ▲ flies a continuous loop. The rotation direction is latched when you
+  press, so the stick doesn't reverse on you as you pass through vertical.
+- Hard turns bleed speed, so a long turning fight leaves you slow and low —
+  which is exactly when the AA guns get interesting.
+- Air thins near the ceiling and the engine starves. The ground is fatal.
+
+### Controls
+
+| Action | Touch | Keyboard |
+| --- | --- | --- |
+| Pull up / push down | ▲ / ▼ (bottom left) | `↑` `↓` or `W` `S` |
+| Fire guns | FIRE | `Space` |
+| Drop bomb | BOMB | `B` |
+| Pause | II (top right) | `P` / `Esc` |
+| Start / restart | on-screen buttons | `Enter` |
+
+## Running locally
+
+ES modules need a real HTTP origin, so opening `index.html` from the filesystem
+won't work. Serve the folder:
+
+```sh
+python3 -m http.server 8000
+# then open http://localhost:8000
+```
+
+To try the touch controls, use your browser's device emulation in portrait
+(e.g. iPhone 12/Pixel 5) or open the address on a phone on the same network.
+
+## Deploying to GitHub Pages
+
+The repo ships `.github/workflows/deploy.yml`, which publishes the repository
+root on every push to `main`. It needs Pages set to build from Actions once:
+
+**Settings → Pages → Build and deployment → Source: GitHub Actions**
+
+Alternatively, skip the workflow entirely and choose **Deploy from a branch**
+(`main`, `/root`) — because there is no build step, the checked-in files are
+already the site. `.nojekyll` is present so the `src/` directory is served
+as-is either way.
+
+## Layout
+
+```
+index.html          markup, HUD, touch controls, overlays
+style.css           portrait-first chrome, safe-area aware
+src/config.js       tuning table + per-wave difficulty curve
+src/util.js         math helpers (angles, horizontal world wrap)
+src/plane.js        flight model, guns, bombs, damage — shared by all aircraft
+src/ai.js           CPU pilot: pursuit with lead, breaks, ground avoidance
+src/world.js        wrapping terrain, ground targets, AA fire, clouds
+src/projectiles.js  bullets, bombs, flak shells
+src/effects.js      particle pool, screen shake
+src/render.js       canvas painting: sky, parallax, biplanes, HUD overlays
+src/audio.js        synthesised sound (no audio assets)
+src/main.js         game state machine, collisions, waves, HUD sync
+```
+
+Player and CPU planes run the exact same physics in `plane.js` — the only
+difference is where the stick inputs come from, so any manoeuvre the AI pulls
+off is available to you too.

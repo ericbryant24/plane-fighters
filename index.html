@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+<meta name="theme-color" content="#10171f" />
+<meta name="mobile-web-app-capable" content="yes" />
+<meta name="apple-mobile-web-app-capable" content="yes" />
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+<meta name="description" content="Plane Fighters — a 2D side-view biplane dogfighting game for portrait mobile." />
+<title>Plane Fighters</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><text y='26' font-size='26'>✈️</text></svg>" />
+<link rel="stylesheet" href="./style.css" />
+</head>
+<body>
+<div id="app">
+  <canvas id="game"></canvas>
+
+  <!-- ── HUD ─────────────────────────────────────────── -->
+  <div id="hud" class="hide">
+    <div class="hud-top">
+      <div class="hud-block">
+        <span class="lbl">SCORE</span>
+        <span class="val" id="hud-score">0</span>
+      </div>
+      <div class="hud-block center">
+        <span class="lbl">WAVE</span>
+        <span class="val" id="hud-wave">1</span>
+      </div>
+      <div class="hud-block right">
+        <span class="lbl">ALT</span>
+        <span class="val" id="hud-alt">0</span>
+      </div>
+    </div>
+
+    <div class="hud-gauges">
+      <div class="gauge">
+        <span class="lbl">HULL</span>
+        <div class="bar"><i id="hud-hp"></i></div>
+      </div>
+      <div class="gauge small">
+        <span class="lbl">BOMBS</span>
+        <div class="pips" id="hud-bombs"></div>
+      </div>
+    </div>
+
+    <div class="hud-msg" id="hud-msg"></div>
+
+    <div class="hud-btns">
+      <button id="btn-pause" class="chip" aria-label="Pause">II</button>
+      <button id="btn-mute" class="chip" aria-label="Toggle sound">♪</button>
+    </div>
+  </div>
+
+  <!-- ── Touch controls ─────────────────────────────── -->
+  <div id="controls" class="hide">
+    <div class="pad left">
+      <button class="ctl pitch" id="ctl-up" aria-label="Pull up">▲</button>
+      <button class="ctl pitch" id="ctl-down" aria-label="Push down">▼</button>
+    </div>
+    <div class="pad right">
+      <button class="ctl bomb" id="ctl-bomb" aria-label="Drop bomb">BOMB</button>
+      <button class="ctl fire" id="ctl-fire" aria-label="Fire guns">FIRE</button>
+    </div>
+  </div>
+
+  <!-- ── Overlays ───────────────────────────────────── -->
+  <div id="overlay" class="screen">
+    <div class="panel">
+      <h1>PLANE<span>FIGHTERS</span></h1>
+      <p class="tag">Side-view biplane dogfights over no-man's-land.</p>
+      <button id="btn-start" class="primary">TAKE OFF</button>
+      <div class="howto">
+        <div class="row"><b>▲ ▼</b><span>Pull up / push down — hold to loop</span></div>
+        <div class="row"><b>FIRE</b><span>Twin Vickers guns</span></div>
+        <div class="row"><b>BOMB</b><span>Drop on ground targets</span></div>
+        <div class="row"><b>NOTE</b><span>Speed sets your turn radius — slow down to turn tight, but stall and the wings quit.</span></div>
+      </div>
+      <p class="keys">Desktop: <b>↑/↓</b> or <b>W/S</b> pitch · <b>Space</b> fire · <b>B</b> bomb · <b>P</b> pause</p>
+      <p class="best">BEST <span id="best-score">0</span></p>
+    </div>
+  </div>
+
+  <div id="pause-screen" class="screen hide">
+    <div class="panel small">
+      <h2>PAUSED</h2>
+      <button id="btn-resume" class="primary">RESUME</button>
+      <button id="btn-quit" class="ghost">END FLIGHT</button>
+    </div>
+  </div>
+
+  <div id="over-screen" class="screen hide">
+    <div class="panel small">
+      <h2 id="over-title">SHOT DOWN</h2>
+      <p class="stats">
+        <span>SCORE <b id="over-score">0</b></span>
+        <span>WAVE <b id="over-wave">1</b></span>
+        <span>KILLS <b id="over-kills">0</b></span>
+      </p>
+      <p class="newbest hide" id="over-best">NEW RECORD</p>
+      <button id="btn-again" class="primary">FLY AGAIN</button>
+    </div>
+  </div>
+</div>
+<script type="module" src="./src/main.js"></script>
+</body>
+</html>
