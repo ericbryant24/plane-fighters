@@ -8,17 +8,33 @@ step, no dependencies — plain HTML, CSS and ES modules on a `<canvas>`.
 
 ## The game
 
-You fly a scout biplane over a wrapping strip of front line. CPU pilots come at
-you in waves; each wave adds more planes, sharper aim and the occasional red ace.
-Guns handle other aircraft, bombs handle what's on the ground.
+You fly a scout biplane over a wrapping strip of front line. Every level hands
+you a different objective; clear it for a bonus, a bomb reload and some hull
+repair, then take the next one. Enemy flying skill climbs with the level number
+independently of what the objective happens to be.
+
+| Level | Objective | What it asks |
+| --- | --- | --- |
+| Air superiority | shoot down N fighters | the classic sweep |
+| Balloon bust | pop N observation balloons | against a clock |
+| Bombing raid | flatten N depots and hangars | bombs only, so you have to go low |
+| Flak suppression | silence N AA guns | the guns shoot back |
+| Intercept | down N bombers before they cross the sector | let too many through and you fail |
+| Ace duel | defeat the red aces | tougher, sharper, three rounds each |
+| Hold the sector | stay airborne for N seconds | continuous opposition |
+
+The rotation repeats and escalates, so a run lasts as long as you do.
 
 - **Guns** — twin fixed forward guns, so you have to point the whole aeroplane.
-- **Bombs** — 8 per wave, dropped from the belly. They fall with your momentum,
+  Two rounds down a fighter, three an ace, five a bomber.
+- **Bombs** — 8 per level, dropped from the belly. They fall with your momentum,
   so a shallow dive throws them forward. Blast radius will also clip a plane —
   including yours, if you release too low.
-- **Ground targets** — AA emplacements shoot flak at you (kill them first),
-  plus depots, hangars and observation balloons for score.
-- **Waves** — clear a wave for a bonus, a bomb reload and some hull repair.
+- **Ground targets** — AA emplacements shoot flak at you, plus depots, hangars
+  and observation balloons. The sector is rebuilt between levels, so an
+  objective always has something to aim at.
+- **Failure** — running a clock out, or letting the bombers through, ends the
+  run as a failed mission rather than a shoot-down.
 
 ### Flying it
 
@@ -94,16 +110,18 @@ needs no runner, no artifact upload and no `github-pages` environment.
 ```
 index.html          markup, HUD, touch controls, overlays
 style.css           portrait-first chrome, safe-area aware
-src/config.js       tuning table + per-wave difficulty curve
+src/config.js       tuning table
+src/missions.js     objective rotation + per-level difficulty curve
 src/util.js         math helpers (angles, horizontal world wrap)
 src/plane.js        flight model, guns, bombs, damage — shared by all aircraft
-src/ai.js           CPU pilot: pursuit with lead, breaks, ground avoidance
+src/ai.js           CPU pilot: pursuit with lead, breaks, ground avoidance,
+                    plus a transit mode for bombers that ignore you
 src/world.js        wrapping terrain, ground targets, AA fire, clouds
 src/projectiles.js  bullets, bombs, flak shells
 src/effects.js      particle pool, screen shake
 src/render.js       canvas painting: sky, parallax, biplanes, HUD overlays
 src/audio.js        synthesised sound (no audio assets)
-src/main.js         game state machine, collisions, waves, HUD sync
+src/main.js         game state machine, collisions, mission runtime, HUD sync
 ```
 
 Player and CPU planes run the exact same physics in `plane.js` — the only

@@ -24,13 +24,18 @@
         <span class="val" id="hud-score">0</span>
       </div>
       <div class="hud-block center">
-        <span class="lbl">WAVE</span>
+        <span class="lbl">LEVEL</span>
         <span class="val" id="hud-wave">1</span>
       </div>
       <div class="hud-block right">
         <span class="lbl">ALT</span>
         <span class="val" id="hud-alt">0</span>
       </div>
+    </div>
+
+    <div class="hud-objective">
+      <span class="lbl" id="hud-obj">PLANES</span>
+      <span class="obj-prog" id="hud-prog">0/3</span>
     </div>
 
     <div class="hud-gauges">
@@ -81,6 +86,7 @@
         <div class="row"><b>BOMB</b><span>Drop on ground targets</span></div>
         <div class="row"><b>NOTE</b><span>Half a loop reverses direction and leaves you upside down. That's fine — fly on inverted, or keep pulling to come round.</span></div>
         <div class="row"><b>SPEED</b><span>Sets your turn radius. Slow down to turn tight, but stall and the wings quit.</span></div>
+        <div class="row"><b>ORDERS</b><span>Each level sets a different objective — sweeps, balloon busts, bombing raids, flak suppression, bomber intercepts, ace duels. Watch the top-left.</span></div>
       </div>
       <p class="keys">Desktop: <b>↑/↓</b> or <b>W/S</b> pitch · <b>Space</b> fire · <b>B</b> bomb · <b>P</b> pause</p>
       <p class="best">BEST <span id="best-score">0</span></p>
@@ -98,9 +104,10 @@
   <div id="over-screen" class="screen hide">
     <div class="panel small">
       <h2 id="over-title">SHOT DOWN</h2>
+      <p class="over-sub" id="over-sub"></p>
       <p class="stats">
         <span>SCORE <b id="over-score">0</b></span>
-        <span>WAVE <b id="over-wave">1</b></span>
+        <span>LEVEL <b id="over-wave">1</b></span>
         <span>KILLS <b id="over-kills">0</b></span>
       </p>
       <p class="newbest hide" id="over-best">NEW RECORD</p>

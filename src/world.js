@@ -53,16 +53,7 @@ export class World {
       const type = i % 3 === 0 ? 'aa' : chance(0.55) ? 'depot' : 'hangar';
       this.addGroundTarget(type, x);
     }
-    for (let i = 0; i < 5; i++) {
-      const x = rand(0, CFG.world.width);
-      this.targets.push({
-        type: 'balloon', x,
-        y: this.terrain.at(x) - rand(230, 420),
-        anchorY: this.terrain.at(x),
-        w: 34, h: 46, hp: 18, maxHp: 18, alive: true, cool: 0,
-        bob: rand(0, 6.3),
-      });
-    }
+    for (let i = 0; i < 5; i++) this.addBalloon(rand(0, CFG.world.width));
 
     // ── Trees and huts for parallax texture. ──
     for (let i = 0; i < 90; i++) {
@@ -99,7 +90,56 @@ export class World {
     });
   }
 
+  addBalloon(x) {
+    const anchorY = this.terrain.at(x);
+    this.targets.push({
+      type: 'balloon', x,
+      y: anchorY - rand(230, 420),
+      anchorY,
+      w: 34, h: 46, hp: 18, maxHp: 18, alive: true, cool: 0,
+      bob: rand(0, 6.3),
+    });
+  }
+
   groundAt(x) { return this.terrain.at(x); }
+
+  /**
+   * Guarantee at least `count` live targets of a type, so a mission always has
+   * something to shoot at even after previous levels flattened the sector.
+   * Dead ones are rebuilt first; anything still short gets built somewhere new.
+   */
+  ensure(type, count) {
+    let live = this.targets.filter((t) => t.alive && t.type === type).length;
+    if (live >= count) return live;
+
+    for (const t of this.targets) {
+      if (live >= count) break;
+      if (t.type !== type || t.alive) continue;
+      t.alive = true;
+      t.hp = t.maxHp;
+      t.cool = rand(1.5, 4);
+      t.recoil = 0;
+      if (type === 'balloon') {
+        t.x = rand(0, CFG.world.width);
+        t.anchorY = this.terrain.at(t.x);
+        t.y = t.anchorY - rand(230, 420);
+      }
+      live++;
+    }
+
+    while (live < count) {
+      const x = rand(0, CFG.world.width);
+      if (type === 'balloon') this.addBalloon(x);
+      else this.addGroundTarget(type, x);
+      live++;
+    }
+    return live;
+  }
+
+  /** Live count of one target type. */
+  countLive(type) {
+    return this.targets.filter((t) => t.alive && t.type === type).length;
+  }
 
   /**
    * Between waves the enemy rebuilds a few installations, so bombs always have

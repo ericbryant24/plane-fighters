@@ -59,32 +59,20 @@ export const CFG = {
   },
 
   enemy: {
-    hp: 54,
+    hp: 18,           // two hits from the player's 9-damage rounds
     maxAlive: 5,
     spawnGap: 1.5,
+    aceHp: 1.5,       // aces take three
+    bomberHp: 2.5,    // bombers soak a five-round burst
   },
 
   score: {
     plane: 150,
     ace: 300,
+    bomber: 260,
     aa: 90,
     depot: 120,
     balloon: 60,
-    wave: 250,
+    mission: 250,      // base objective bonus, plus 25 per level
   },
 };
-
-// Per-wave difficulty knobs, interpolated/extrapolated from wave number.
-export function waveSpec(wave) {
-  const w = Math.max(1, wave);
-  return {
-    total: 2 + Math.floor(w * 0.9),               // planes to shoot down
-    aces: w < 3 ? 0 : Math.floor((w - 1) / 3),
-    aim: Math.min(0.85, 0.34 + w * 0.055),        // firing cone tightness
-    lead: Math.min(1, 0.35 + w * 0.09),           // how well they lead shots
-    agility: Math.min(1.15, 0.74 + w * 0.045),
-    speed: Math.min(1.12, 0.86 + w * 0.03),
-    reaction: Math.max(0.16, 0.62 - w * 0.05),
-    maxAlive: Math.min(CFG.enemy.maxAlive, 2 + Math.floor(w / 2)),
-  };
-}

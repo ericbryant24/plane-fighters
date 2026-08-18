@@ -370,7 +370,7 @@ export class Renderer {
   drawPlane(p) {
     const { ctx } = this;
     const dx = ringDelta(this.camX, p.x, W());
-    if (Math.abs(dx) > this.viewW / 2 + 90) return;
+    if (Math.abs(dx) > this.viewW / 2 + 90 * (p.scale || 1)) return;
     const L = p.livery;
     ctx.save();
     ctx.translate(this.camX + dx, p.y);
@@ -379,6 +379,7 @@ export class Renderer {
     // Mirroring on heading instead would right the plane as it crossed vertical
     // and invert the apparent control sense with it.
     ctx.scale(1, p.roll);
+    if (p.scale !== 1) ctx.scale(p.scale, p.scale);
 
     // Propeller disc.
     const blur = 0.5 + 0.5 * Math.abs(Math.sin(p.propPhase));

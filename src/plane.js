@@ -7,6 +7,7 @@ export const LIVERY = {
   player: { body: '#7f8f5a', wing: '#94a566', trim: '#3f4a2c', mark: '#3f6fa8', pilot: '#c8a878' },
   enemy: { body: '#6c4340', wing: '#8a5450', trim: '#2f1f1e', mark: '#1a1a1a', pilot: '#b09070' },
   ace: { body: '#a8322a', wing: '#c24036', trim: '#3a1310', mark: '#f0e0d0', pilot: '#d0b090' },
+  bomber: { body: '#4f5a63', wing: '#5f6b74', trim: '#2a3238', mark: '#1a1a1a', pilot: '#a89078' },
 };
 
 export class Plane {
@@ -31,7 +32,8 @@ export class Plane {
 
     this.maxHp = opts.hp ?? (this.side === 'player' ? P.hp : CFG.enemy.hp);
     this.hp = this.maxHp;
-    this.radius = P.radius;
+    this.scale = opts.scale ?? 1;               // bombers are drawn larger
+    this.radius = P.radius * this.scale;
     this.power = opts.power ?? 1;               // thrust multiplier
     this.agility = opts.agility ?? 1;
     this.fireRate = opts.fireRate ?? 1;

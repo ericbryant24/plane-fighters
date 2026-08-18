@@ -1,4 +1,5 @@
-import { CFG, waveSpec } from './config.js';
+import { CFG } from './config.js';
+import { missionFor } from './missions.js';
 import { clamp, rand, chance, ringDelta, hypot, wrapX } from './util.js';
 import { Plane } from './plane.js';
 import { Pilot } from './ai.js';
@@ -31,13 +32,14 @@ class Game {
     this.bombs = [];
     this.flak = [];
 
-    this.wave = 1;
-    this.spec = waveSpec(1);
+    this.level = 1;
+    this.mission = missionFor(1);
+    this.spec = this.mission.skill;
     this.score = 0;
     this.kills = 0;
     this.toSpawn = 0;
     this.spawnTimer = 0;
-    this.waveEnd = 0;
+    this.missionEnd = 0;
     this.deathTimer = 0;
     this.deathReason = '';
     this.msgTimer = 0;
@@ -45,7 +47,8 @@ class Game {
     this.hud = {
       score: el('hud-score'), wave: el('hud-wave'), alt: el('hud-alt'),
       hp: el('hud-hp'), bombs: el('hud-bombs'), msg: el('hud-msg'),
-      shown: { score: -1, wave: -1, alt: -1, hp: -1, bombs: -1 },
+      obj: el('hud-obj'), prog: el('hud-prog'),
+      shown: { score: -1, wave: -1, alt: -1, hp: -1, bombs: -1, obj: '', prog: '' },
     };
 
     this.best = Number(localStorage.getItem('pf-best') || 0);
@@ -119,7 +122,7 @@ class Game {
 
     this.score = 0;
     this.kills = 0;
-    this.wave = 0;
+    this.level = 0;
     this.time = 0;
     this.acc = 0;
     this.deathTimer = 0;
@@ -134,7 +137,7 @@ class Game {
 
     this.state = 'playing';
     this.screens({ playing: true });
-    this.nextWave();
+    this.nextLevel();
     this.syncHud(true);
   }
 
@@ -172,51 +175,191 @@ class Game {
       this.best = this.score;
       localStorage.setItem('pf-best', String(this.best));
     }
-    el('over-title').textContent = reason === 'crash' ? 'CRASHED' : 'SHOT DOWN';
+    el('over-title').textContent =
+      reason === 'crash' ? 'CRASHED' : reason === 'failed' ? 'MISSION FAILED' : 'SHOT DOWN';
+    el('over-sub').textContent = reason === 'failed' ? this.mission.title : '';
     el('over-score').textContent = this.score;
-    el('over-wave').textContent = this.wave;
+    el('over-wave').textContent = this.level;
     el('over-kills').textContent = this.kills;
     this.show('over-best', isBest);
     this.screens({ over: true });
   }
 
-  // ── Waves ─────────────────────────────────────────────────
+  // ── Missions ──────────────────────────────────────────────
 
-  nextWave() {
-    this.wave++;
-    if (this.wave > 1) this.world.reinforce(3);
-    this.spec = waveSpec(this.wave);
-    this.toSpawn = this.spec.total;
+  nextLevel() {
+    this.level++;
+    const m = missionFor(this.level);
+    this.mission = m;
+    this.spec = m.skill;
+
+    // Make sure the sector actually holds what the objective asks for.
+    this.world.reinforce(2);
+    if (m.needs) for (const [type, n] of Object.entries(m.needs)) this.world.ensure(type, n);
+
+    this.progress = 0;
+    this.escaped = 0;
+    this.missionTime = 0;
+    this.missionEnd = 0;
+    this.missionBonus = false;
+    this.acesLeft = m.aces;
+    this.bombersLeft = m.bombers;
+    // Primary opposition that has to be spawned. Ground objectives spawn none
+    // up front; they get a standing patrol instead.
+    this.toSpawn = m.type === 'sweep' ? Math.max(0, m.goal - m.aces) : 0;
     this.spawnTimer = 1.1;
-    this.waveEnd = 0;
-    this.waveBonus = false;
-    this.message(`WAVE ${this.wave}`, 1.8);
+
+    this.message(m.title, 2.4);
+    this.briefAt = this.time + 2.5;
+    this.briefFor = m.level;
   }
 
-  spawnEnemy() {
+  /** Objective progress, and the win/lose test. Called once per step. */
+  updateMission(dt) {
+    const m = this.mission;
+    this.missionTime += dt;
+
+    if (this.briefFor === m.level && this.briefAt && this.time >= this.briefAt) {
+      this.briefAt = 0;
+      this.message(m.brief, 2.6);
+    }
+
+    if (m.isTimed) this.progress = Math.min(m.goal, this.missionTime);
+
+    // ── Bombers reaching their target ──
+    if (m.bombers) {
+      for (const e of this.enemies) {
+        if (e.kind !== 'bomber' || !e.ai || !e.ai.escaped || e.counted) continue;
+        e.counted = true;
+        e.alive = false;
+        this.escaped++;
+        this.fx.smoke(e.x, e.y, 0, -20);
+        this.message('BOMBER ESCAPED', 1.4);
+      }
+    }
+
+    // ── Failure ──
+    if (m.timeLimit && this.missionTime > m.timeLimit && this.progress < m.goal) {
+      this.message('OUT OF TIME', 2);
+      this.playerDown('failed');
+      return;
+    }
+    if (m.type === 'intercept' && this.escaped > m.allowEscape) {
+      this.message('BOMBERS GOT THROUGH', 2);
+      this.playerDown('failed');
+      return;
+    }
+
+    // ── Spawning ──
+    this.spawnTimer -= dt;
+    if (this.spawnTimer <= 0) {
+      const fighters = this.enemies.filter((e) => e.kind !== 'bomber').length;
+      if (this.toSpawn > 0 && fighters < this.spec.maxAlive) {
+        this.spawnTimer = CFG.enemy.spawnGap * rand(0.7, 1.3);
+        this.spawnFighter();
+      } else if (this.acesLeft > 0 && this.enemies.length < this.spec.maxAlive) {
+        this.spawnTimer = CFG.enemy.spawnGap * rand(0.9, 1.6);
+        this.acesLeft--;
+        this.spawnFighter(true);
+      } else if (this.bombersLeft > 0) {
+        this.spawnTimer = rand(3.5, 6);
+        this.bombersLeft--;
+        this.spawnBomber();
+      } else if (m.fighters && fighters < m.fighters && this.progress < m.goal) {
+        // Standing patrol: keeps pressure on during ground objectives.
+        this.spawnTimer = CFG.enemy.spawnGap * rand(1.4, 2.4);
+        this.spawnFighter();
+      }
+    }
+
+    // ── Completion ──
+    const cleared = this.progress >= m.goal
+      && !(m.type === 'intercept' && this.enemies.some((e) => e.kind === 'bomber'));
+    if (!cleared) return;
+
+    this.missionEnd += dt;
+    if (!this.missionBonus) {
+      this.missionBonus = true;
+      const bonus = CFG.score.mission + this.level * 25;
+      this.score += bonus;
+      this.message(`OBJECTIVE COMPLETE  +${bonus}`, 2.4);
+      this.audio.chime();
+    }
+    if (this.missionEnd > 2.8) {
+      const p = this.player;
+      if (p) {
+        p.hp = Math.min(p.maxHp, p.hp + 28);
+        p.bombs = CFG.bomb.max;
+      }
+      this.nextLevel();
+    }
+  }
+
+  /** Credit objective progress for a kill or a demolished structure. */
+  credit(what, kind) {
+    const m = this.mission;
+    if (this.progress >= m.goal) return;
+    const hit =
+      (m.type === 'sweep' && what === 'plane' && kind !== 'bomber') ||
+      (m.type === 'duel' && what === 'plane' && kind === 'ace') ||
+      (m.type === 'intercept' && what === 'plane' && kind === 'bomber') ||
+      (m.type === 'balloons' && what === 'balloon') ||
+      (m.type === 'raid' && (what === 'depot' || what === 'hangar')) ||
+      (m.type === 'flak' && what === 'aa');
+    if (hit) this.progress++;
+  }
+
+  spawnFighter(forceAce = false) {
     const p = this.player;
     const side = chance(0.5) ? 1 : -1;
     const dist = this.renderer.viewW * 0.55 + rand(80, 260);
     const x = wrapX(p.x + side * dist, CFG.world.width);
     const ground = this.world.groundAt(x);
     const y = clamp(p.y + rand(-260, 200), CFG.world.ceiling + 60, ground - 220);
-    const ace = this.spec.aces > 0 && chance(0.35);
-    if (ace) this.spec.aces--;
+    const ace = forceAce;
 
     const e = new Plane({
       x, y,
       angle: side > 0 ? Math.PI : 0,
       side: 'enemy',
       kind: ace ? 'ace' : 'enemy',
-      hp: CFG.enemy.hp * (ace ? 1.5 : 1),
+      hp: CFG.enemy.hp * (ace ? CFG.enemy.aceHp : 1),
       speed: CFG.plane.cruise * this.spec.speed,
       power: this.spec.speed * (ace ? 1.08 : 1),
       agility: this.spec.agility * (ace ? 1.12 : 1),
       fireRate: CFG.gun.enemyFireRate * (ace ? 1.25 : 1),
     });
-    e.ai = new Pilot(e, ace ? { ...this.spec, aim: Math.min(0.9, this.spec.aim + 0.12), reaction: this.spec.reaction * 0.7 } : this.spec);
+    e.ai = new Pilot(e, ace
+      ? { ...this.spec, aim: Math.min(0.9, this.spec.aim + 0.12), reaction: this.spec.reaction * 0.7 }
+      : this.spec);
     this.enemies.push(e);
-    this.toSpawn--;
+    if (!forceAce && this.toSpawn > 0) this.toSpawn--;
+  }
+
+  spawnBomber() {
+    const p = this.player;
+    const side = chance(0.5) ? 1 : -1;
+    const x = wrapX(p.x + side * (this.renderer.viewW * 0.7 + rand(120, 400)), CFG.world.width);
+    const ground = this.world.groundAt(x);
+    const y = clamp(p.y + rand(-320, -60), CFG.world.ceiling + 80, ground - 420);
+    const heading = side > 0 ? Math.PI : 0;      // headed across the sector
+    const e = new Plane({
+      x, y,
+      angle: heading,
+      side: 'enemy',
+      kind: 'bomber',
+      scale: 1.6,
+      hp: CFG.enemy.hp * CFG.enemy.bomberHp,
+      speed: CFG.plane.cruise * 0.78,
+      power: 0.85,
+      agility: 0.5,
+    });
+    e.ai = new Pilot(e, this.spec, {
+      transit: true,
+      heading,
+      goalX: wrapX(x + (side > 0 ? -1 : 1) * CFG.world.width * 0.45, CFG.world.width),
+    });
+    this.enemies.push(e);
   }
 
   // ── Spawning projectiles (called by planes) ───────────────
@@ -293,30 +436,7 @@ class Game {
     this.flak = this.flak.filter((f) => !f.burst);
     this.enemies = this.enemies.filter((e) => e.alive);
 
-    // Wave pacing.
-    if (this.state === 'playing') {
-      this.spawnTimer -= dt;
-      if (this.toSpawn > 0 && this.enemies.length < this.spec.maxAlive && this.spawnTimer <= 0) {
-        this.spawnTimer = CFG.enemy.spawnGap * rand(0.7, 1.3);
-        this.spawnEnemy();
-      }
-      if (this.toSpawn <= 0 && this.enemies.length === 0) {
-        this.waveEnd += dt;
-        if (!this.waveBonus) {
-          this.waveBonus = true;
-          this.score += CFG.score.wave;
-          this.message(`WAVE CLEAR  +${CFG.score.wave}`, 2);
-          this.audio.chime();
-        }
-        if (this.waveEnd > 2.6) {
-          if (p) {
-            p.hp = Math.min(p.maxHp, p.hp + 28);
-            p.bombs = CFG.bomb.max;
-          }
-          this.nextWave();
-        }
-      }
-    }
+    if (this.state === 'playing') this.updateMission(dt);
 
     if (this.state === 'dying') {
       this.deathTimer -= dt;
@@ -446,6 +566,7 @@ class Game {
     this.audio.explode(1.1);
     const pts = { aa: CFG.score.aa, balloon: CFG.score.balloon }[t.type] ?? CFG.score.depot;
     this.score += pts;
+    this.credit(t.type);
     this.message(`+${pts}`, 0.7);
   }
 
@@ -481,9 +602,12 @@ class Game {
       return;
     }
     this.kills++;
-    const pts = plane.kind === 'ace' ? CFG.score.ace : CFG.score.plane;
-    this.score += Math.round(pts * (crashed ? 0.6 : 1));
-    if (byPlayer || crashed) this.message(`+${Math.round(pts * (crashed ? 0.6 : 1))}`, 0.7);
+    const pts = plane.kind === 'ace' ? CFG.score.ace
+      : plane.kind === 'bomber' ? CFG.score.bomber : CFG.score.plane;
+    const award = Math.round(pts * (crashed ? 0.6 : 1));
+    this.score += award;
+    this.credit('plane', plane.kind);
+    if (byPlayer || crashed) this.message(`+${award}`, 0.7);
   }
 
   playerDown(reason) {
@@ -503,7 +627,27 @@ class Game {
     const s = h.shown;
     const p = this.player;
     if (force || s.score !== this.score) { h.score.textContent = this.score; s.score = this.score; }
-    if (force || s.wave !== this.wave) { h.wave.textContent = this.wave; s.wave = this.wave; }
+    if (force || s.wave !== this.level) { h.wave.textContent = this.level; s.wave = this.level; }
+
+    const m = this.mission;
+    if (force || s.obj !== m.label) { h.obj.textContent = m.label; s.obj = m.label; }
+    let prog;
+    if (m.isTimed) {
+      prog = `${Math.max(0, Math.ceil(m.goal - (this.missionTime || 0)))}s`;
+    } else {
+      prog = `${Math.min(this.progress || 0, m.goal)}/${m.goal}`;
+      if (m.timeLimit) {
+        const left = Math.max(0, Math.ceil(m.timeLimit - (this.missionTime || 0)));
+        prog += `  ${Math.floor(left / 60)}:${String(left % 60).padStart(2, '0')}`;
+      }
+      if (m.type === 'intercept' && m.allowEscape >= 0) prog += `  esc ${this.escaped || 0}/${m.allowEscape + 1}`;
+    }
+    if (force || s.prog !== prog) {
+      h.prog.textContent = prog;
+      const urgent = m.timeLimit && (m.timeLimit - (this.missionTime || 0)) < 15;
+      h.prog.classList.toggle('urgent', !!urgent);
+      s.prog = prog;
+    }
 
     const alt = p ? Math.max(0, Math.round((this.world.groundAt(p.x) - p.y) / 10) * 10) : 0;
     if (force || s.alt !== alt) { h.alt.textContent = alt; s.alt = alt; }

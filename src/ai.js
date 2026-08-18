@@ -12,9 +12,15 @@ const DOWN = Math.PI / 2;
  * is what makes early waves feel clumsy and late waves feel sharp.
  */
 export class Pilot {
-  constructor(plane, spec) {
+  constructor(plane, spec, opts = {}) {
     this.p = plane;
     this.spec = spec;
+    // A transiting bomber ignores the player entirely: it holds a heading for
+    // its target and is someone else's problem until it gets there.
+    this.transit = !!opts.transit;
+    this.goalX = opts.goalX ?? 0;
+    this.heading = opts.heading ?? plane.angle;
+    this.escaped = false;
     this.state = 'engage';
     this.stateTime = 0;
     this.think = 0;
@@ -31,6 +37,11 @@ export class Pilot {
     const spec = this.spec;
     this.stateTime += dt;
     this.weave += dt;
+
+    if (this.transit) {
+      this.flyTransit(dt);
+      return;
+    }
 
     // ── Reflexes that override the plan: don't fly into the dirt or the ceiling.
     const alt = p.altitude;
@@ -70,6 +81,21 @@ export class Pilot {
 
     c.turn = p.steerTo(this.desired, 2.4 * spec.agility);
     c.fire = this.state === 'engage' && this.wantFire;
+  }
+
+  /** Bore straight on for the objective, only dodging the terrain. */
+  flyTransit(dt) {
+    const p = this.p;
+    const c = p.controls;
+    c.fire = false;
+    const alt = p.altitude;
+    if (alt < GROUND_MARGIN * 1.2 && p.vy > -40) c.turn = p.steerTo(UP, 3);
+    else if (p.y < CFG.world.topY + CEIL_MARGIN) c.turn = p.steerTo(DOWN, 2);
+    else c.turn = p.steerTo(this.heading, 1.8);
+
+    if (!this.escaped && Math.abs(ringDelta(p.x, this.goalX, CFG.world.width)) < 90) {
+      this.escaped = true;
+    }
   }
 
   decide(dx, dy, dist, target, threat) {
