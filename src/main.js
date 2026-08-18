@@ -55,6 +55,7 @@ class Game {
     el('best-score').textContent = this.best;
 
     this.bindUi();
+    this.refreshCheckpointUi();
     initInput();
 
     addEventListener('resize', () => this.renderer.resize());
@@ -70,8 +71,10 @@ class Game {
   // ── UI plumbing ───────────────────────────────────────────
 
   bindUi() {
-    el('btn-start').addEventListener('click', () => this.start());
-    el('btn-again').addEventListener('click', () => this.start());
+    el('btn-start').addEventListener('click', () => this.start(false));
+    el('btn-again').addEventListener('click', () => this.start(false));
+    el('btn-continue').addEventListener('click', () => this.start(true));
+    el('btn-retry').addEventListener('click', () => this.start(true));
     el('btn-resume').addEventListener('click', () => this.resume());
     el('btn-quit').addEventListener('click', () => this.toMenu());
     el('btn-pause').addEventListener('click', () => this.pause());
@@ -86,7 +89,7 @@ class Game {
         else if (this.state === 'paused') this.resume();
       }
       if (e.code === 'Enter' || e.code === 'NumpadEnter') {
-        if (this.state === 'menu' || this.state === 'over') this.start();
+        if (this.state === 'menu' || this.state === 'over') this.start(!!this.loadCheckpoint());
       }
     });
   }
@@ -109,7 +112,8 @@ class Game {
 
   // ── Lifecycle ─────────────────────────────────────────────
 
-  start() {
+  start(resume = false) {
+    const cp = resume ? this.loadCheckpoint() : null;
     this.audio.unlock();
     this.audio.startEngine();
     this.world.reset();
@@ -120,9 +124,12 @@ class Game {
     this.flak.length = 0;
     resetInput();
 
-    this.score = 0;
-    this.kills = 0;
-    this.level = 0;
+    // Resuming picks the run back up at the start of the checkpointed level,
+    // with the score it had on arrival and a fresh aeroplane.
+    this.score = cp ? cp.score : 0;
+    this.kills = cp ? cp.kills : 0;
+    this.level = cp ? cp.level - 1 : 0;
+    if (!cp) this.clearCheckpoint();
     this.time = 0;
     this.acc = 0;
     this.deathTimer = 0;
@@ -141,11 +148,54 @@ class Game {
     this.syncHud(true);
   }
 
+  // ── Checkpoints ───────────────────────────────────────────
+  // One checkpoint, written on arrival at each level, so a bad sortie costs the
+  // current level rather than the whole run. Starting a new flight clears it.
+
+  loadCheckpoint() {
+    try {
+      const cp = JSON.parse(localStorage.getItem('pf-run') || 'null');
+      if (!cp || typeof cp.level !== 'number' || cp.level < 2) return null;
+      return { level: cp.level, score: cp.score || 0, kills: cp.kills || 0 };
+    } catch {
+      return null;
+    }
+  }
+
+  saveCheckpoint() {
+    if (this.level < 2) { this.clearCheckpoint(); return; }
+    try {
+      localStorage.setItem('pf-run', JSON.stringify({
+        level: this.level, score: this.score, kills: this.kills,
+      }));
+    } catch { /* private browsing — checkpoints just won't persist */ }
+  }
+
+  clearCheckpoint() {
+    try { localStorage.removeItem('pf-run'); } catch { /* ignore */ }
+  }
+
+  /** Show or hide the continue/retry affordances based on the saved run. */
+  refreshCheckpointUi() {
+    const cp = this.loadCheckpoint();
+    this.show('btn-continue', !!cp);
+    this.show('btn-retry', !!cp);
+    if (cp) {
+      el('cp-level').textContent = cp.level;
+      el('cp-level-2').textContent = cp.level;
+    }
+    el('btn-start').textContent = cp ? 'NEW FLIGHT' : 'TAKE OFF';
+    el('btn-start').className = cp ? 'ghost' : 'primary';
+    el('btn-again').textContent = cp ? 'NEW FLIGHT' : 'FLY AGAIN';
+    el('btn-again').className = cp ? 'ghost' : 'primary';
+  }
+
   toMenu() {
     this.state = 'menu';
     this.audio.stopEngine();
     resetInput();
     el('best-score').textContent = this.best;
+    this.refreshCheckpointUi();
     this.screens({ overlay: true });
   }
 
@@ -182,6 +232,7 @@ class Game {
     el('over-wave').textContent = this.level;
     el('over-kills').textContent = this.kills;
     this.show('over-best', isBest);
+    this.refreshCheckpointUi();
     this.screens({ over: true });
   }
 
@@ -209,6 +260,7 @@ class Game {
     this.toSpawn = m.type === 'sweep' ? Math.max(0, m.goal - m.aces) : 0;
     this.spawnTimer = 1.1;
 
+    this.saveCheckpoint();
     this.message(m.title, 2.4);
     this.briefAt = this.time + 2.5;
     this.briefFor = m.level;

@@ -35,6 +35,11 @@ The rotation repeats and escalates, so a run lasts as long as you do.
   objective always has something to aim at.
 - **Failure** — running a clock out, or letting the bombers through, ends the
   run as a failed mission rather than a shoot-down.
+- **Checkpoints** — progress is saved on arrival at every level, so being shot
+  down costs you that level rather than the whole run. The game-over screen
+  offers *Retry level N* with a fresh aeroplane and the score you had on
+  arrival; *New flight* starts over from level 1 and clears the checkpoint. The
+  save lives in `localStorage`, so it survives closing the tab.
 
 ### Flying it
 
@@ -69,7 +74,7 @@ momentum, and turning is charged as induced drag.
 | Fire guns | FIRE | `Space` |
 | Drop bomb | BOMB | `B` |
 | Pause | II (top right) | `P` / `Esc` |
-| Start / restart | on-screen buttons | `Enter` |
+| Start / retry | on-screen buttons | `Enter` (resumes the checkpoint when there is one) |
 
 Pitch is an analog drag rather than buttons: press anywhere on the playfield
 and a stick appears under your finger. Deflection is proportional — about 84px

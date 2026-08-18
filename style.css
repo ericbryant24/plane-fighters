@@ -123,6 +123,13 @@ html, body {
   50% { opacity: 0.45; }
 }
 
+.cp-note {
+  margin-top: 10px;
+  font-size: 9px;
+  letter-spacing: 0.1em;
+  color: #6b7c8c;
+}
+
 .over-sub {
   margin-top: 6px;
   font-size: 10px;

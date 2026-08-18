@@ -78,6 +78,7 @@
     <div class="panel">
       <h1>PLANE<span>FIGHTERS</span></h1>
       <p class="tag">Side-view biplane dogfights over no-man's-land.</p>
+      <button id="btn-continue" class="primary hide">CONTINUE · LEVEL <span id="cp-level">1</span></button>
       <button id="btn-start" class="primary">TAKE OFF</button>
       <div class="howto">
         <div class="row"><b>DRAG</b><span>Anywhere — up pulls the stick back, down pushes. How far you drag is how hard she turns.</span></div>
@@ -86,6 +87,7 @@
         <div class="row"><b>BOMB</b><span>Drop on ground targets</span></div>
         <div class="row"><b>NOTE</b><span>Half a loop reverses direction and leaves you upside down. That's fine — fly on inverted, or keep pulling to come round.</span></div>
         <div class="row"><b>SPEED</b><span>Sets your turn radius. Slow down to turn tight, but stall and the wings quit.</span></div>
+        <div class="row"><b>SAVED</b><span>Progress is checkpointed at every level — get shot down and you retry that level, not the whole run.</span></div>
         <div class="row"><b>ORDERS</b><span>Each level sets a different objective — sweeps, balloon busts, bombing raids, flak suppression, bomber intercepts, ace duels. Watch the top-left.</span></div>
       </div>
       <p class="keys">Desktop: <b>↑/↓</b> or <b>W/S</b> pitch · <b>Space</b> fire · <b>B</b> bomb · <b>P</b> pause</p>
@@ -111,7 +113,9 @@
         <span>KILLS <b id="over-kills">0</b></span>
       </p>
       <p class="newbest hide" id="over-best">NEW RECORD</p>
+      <button id="btn-retry" class="primary hide">RETRY LEVEL <span id="cp-level-2">1</span></button>
       <button id="btn-again" class="primary">FLY AGAIN</button>
+      <p class="cp-note">A new flight starts again from level 1.</p>
     </div>
   </div>
 </div>
